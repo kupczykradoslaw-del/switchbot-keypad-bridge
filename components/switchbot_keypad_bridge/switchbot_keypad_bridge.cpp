@@ -557,9 +557,17 @@ void SwitchbotKeypadBridge::handle_command_(const FrameHeader &header, const Dec
       break;
 
     case CommandType::DOORBELL:
-      ESP_LOGI(TAG, "Doorbell");
-      this->publish_doorbell_();
-      break;
+  ESP_LOGI(TAG, "Doorbell");
+
+  // Najpierw natychmiast ACK do Keypada.
+  this->send_ack_(header);
+
+  // Dopiero potem publikacja zdarzenia ESPHome.
+  this->defer([this]() {
+    this->publish_doorbell_();
+  });
+
+  return;
 
     case CommandType::UNKNOWN:
     default:
@@ -605,8 +613,7 @@ void SwitchbotKeypadBridge::send_local_response_(const FrameHeader &header,
       this->handle_state_poll_(header);
       return;
     case CommandType::DOORBELL:
-      this->send_ack_(header);
-      return;
+  return;
     case CommandType::UNKNOWN:
     default:
       this->send_ack_(header);
